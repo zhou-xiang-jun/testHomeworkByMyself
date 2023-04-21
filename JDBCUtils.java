@@ -1,9 +1,5 @@
-package com.goole.Practice.Prepare;
+package prepared;
 
-import com.goole.Practice.Run.Student;
-import org.junit.Test;
-
-import javax.xml.transform.Result;
 import java.io.InputStream;
 import java.sql.*;
 import java.util.ArrayList;
@@ -16,12 +12,12 @@ public class JDBCUtils {
     private static String user;
     private static String password;
     private static String driver;
+    private static Connection connection;
     private static PreparedStatement preparedStatement;
+    private static Scanner scanner = new Scanner(System.in);
 
-    // 预处理，获取文件中配置的值
     static {
-        try {
-            JDBCUtils.class.getClassLoader();
+        try{
             InputStream inputStream = ClassLoader.getSystemResourceAsStream("db.properties");
             Properties properties = new Properties();
             properties.load(inputStream);
@@ -31,183 +27,122 @@ public class JDBCUtils {
             password = properties.getProperty("password");
             driver = properties.getProperty("driver");
 
-            // System.out.println(url+" "+user+" "+password+" "+driver);
-        } catch (Exception e) {
+            connection = DriverManager.getConnection(url,user,password);
+//            System.out.println(url);
+//            System.out.println(user);
+//            System.out.println(password);
+//            System.out.println(driver);
+//            System.out.println(connection);
+        }catch(Exception e){
             e.printStackTrace();
         }
 
     }
 
-    public static Connection getConnection() {
-        try {
-            return DriverManager.getConnection(url, user, password);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
+    public static void init(){
 
-    public static void close(PreparedStatement preparedStatement, Connection connection) throws SQLException {
-        if (preparedStatement != null) {
-            preparedStatement.close();
-        }
-
-        if (connection != null) {
-            connection.close();
-        }
 
     }
 
-    public static void close(PreparedStatement preparedStatement, Connection connection, ResultSet resultSet) throws SQLException {
-        if (preparedStatement != null) {
-            preparedStatement.close();
+    public static void insertData() throws SQLException {
+        String sql = "insert into jun value(null,?,?,?,default,default)";
+        preparedStatement = connection.prepareStatement(sql);
+        preparedStatement.setString(1,scanner.nextLine());
+        preparedStatement.setString(2,scanner.nextLine());
+        preparedStatement.setInt(3,scanner.nextInt());
+        int isInsert = preparedStatement.executeUpdate();
+
+        if(isInsert != 0) {
+            System.out.println("Manage to insert!");
+        }
+        JDBCUtils.close(preparedStatement, connection);
+        scanner.close();
+    }
+    public static void deleteByName() throws SQLException {
+        String sql = "delete from jun where name=?";
+        preparedStatement = connection.prepareStatement(sql);
+        preparedStatement.setString(1,scanner.nextLine());
+        int isDelete = preparedStatement.executeUpdate();
+
+        if(isDelete != 0) {
+            System.out.println("Manage to delete!");
         }
 
-        if (connection != null) {
-            connection.close();
-        }
-
-        if (resultSet != null) {
-            resultSet.close();
-        }
+        JDBCUtils.close(preparedStatement, connection);
+        scanner.close();
 
     }
+    public static void updateByName() throws SQLException {
+        String sql= "update jun set name=? where name=?";
+        preparedStatement = connection.prepareStatement(sql);
+        System.out.println("Please input the new name :");
+        preparedStatement.setString(1, scanner.nextLine());
+        System.out.println("Please input the old name :");
+        preparedStatement.setString(2, scanner.nextLine());
+        int isUpdate = preparedStatement.executeUpdate();
 
-    public static void insertData() {
-        try {
-            Connection connection = JDBCUtils.getConnection();
-            Scanner scanner = new Scanner(System.in);
-            String sql = "insert into infor(id,name,age,gender) value(null,?,?,?)";
-            preparedStatement = connection.prepareStatement(sql);
-            preparedStatement.setString(1, scanner.nextLine());
-            preparedStatement.setInt(2, scanner.nextInt());
-            scanner.nextLine();
-            preparedStatement.setString(3, scanner.nextLine());
-
-            int isUpdate = preparedStatement.executeUpdate();
-            if (isUpdate > 0) {
-                System.out.println("Manage to insert!");
-            }
-
-            JDBCUtils.close(preparedStatement, connection);
-            scanner.close();
-
-        } catch (Exception e) {
-            e.printStackTrace();
+        if(isUpdate != 0) {
+            System.out.println("Manage to update!");
+        } else{
+            System.out.println("fail to update!");
         }
+
+        JDBCUtils.close(preparedStatement, connection);
+        scanner.close();
     }
+    public static void searchByName() throws SQLException {
+        String sql ="select * from jun where name=?";
+        preparedStatement = connection.prepareStatement(sql);
+        System.out.println("Please input your target book's name");
+        preparedStatement.setString(1,scanner.nextLine());
+        ResultSet resultSet = preparedStatement.executeQuery();
+        ArrayList<Book> arrayList = new ArrayList<>();
 
-    public static int viewAllData() {
-        try {
-            Connection connection = JDBCUtils.getConnection();
-            String sql = "select * from infor";
-            preparedStatement = connection.prepareStatement(sql);
-            ResultSet resultSet = preparedStatement.executeQuery(sql);
-            ArrayList<Student> arrayList = new ArrayList<>();
-
-            while (resultSet.next()) {
-                arrayList.add(new Student(resultSet.getInt(1),
-                        resultSet.getString(2),
-                        resultSet.getInt(3),
-                        resultSet.getString(4)));
-            }
-
-            if (arrayList.size() == 0) {
-                System.out.println("The table not concludes any data! ");
-            }
-
-            Iterator<Student> iterator = arrayList.iterator();
-            while (iterator.hasNext()) {
-                System.out.println(iterator.next());
-            }
-
-            JDBCUtils.close(preparedStatement, connection, resultSet);
-
-        } catch (Exception e) {
-            e.printStackTrace();
+        while(resultSet.next()) {
+            arrayList.add(new Book(resultSet.getInt(1), resultSet.getString(2), resultSet.getString(3),
+                    resultSet.getString(4),
+                    resultSet.getTimestamp(5),
+                    resultSet.getTimestamp(6)));
         }
-        return 0;
-    }
 
-    public static void searchByName() {
-        try {
-            Connection connection = JDBCUtils.getConnection();
-            Scanner scanner = new Scanner(System.in);
-            String sql = "select * from infor where name=?";
-            preparedStatement = connection.prepareStatement(sql);
-            preparedStatement.setString(1, scanner.nextLine());
-            ResultSet resultSet = preparedStatement.executeQuery();
-            ArrayList<Student> arrayList = new ArrayList<>();
-            while (resultSet.next()) {
-                arrayList.add(new Student(resultSet.getInt(1),
-                        resultSet.getString(2),
-                        resultSet.getInt(3),
-                        resultSet.getString(4)));
-            }
-
-            if (arrayList.size() == 0) {
-                System.out.println("The target data isn't in the table!");
-            }
-
-            Iterator<Student> iterator = arrayList.iterator();
-            while (iterator.hasNext()) {
-                System.out.println(iterator.next());
-            }
-
-            JDBCUtils.close(preparedStatement, connection);
-            scanner.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+        if(arrayList.size() == 0) {
+            System.out.println("Fail to search target Book!");
         }
-    }
 
-    public static int deleteByName() {
-        try {
-            Connection connection = JDBCUtils.getConnection();
-            Scanner scanner = new Scanner(System.in);
-            String sql = "delete from infor where name=?";
-            preparedStatement = connection.prepareStatement(sql);
-            preparedStatement.setString(1, scanner.nextLine());
-            int is_Update = preparedStatement.executeUpdate();
-            JDBCUtils.close(preparedStatement, connection);
-
-            JDBCUtils.close(preparedStatement, connection);
-            scanner.close();
-            return is_Update;
-        } catch (Exception e) {
-            e.printStackTrace();
+        Iterator<Book> iterator = arrayList.iterator();
+        while (iterator.hasNext()) {
+            System.out.println(iterator.next());
         }
-        return 0;
+
+        JDBCUtils.close(preparedStatement, connection);
+        scanner.close();
     }
+    public static void viewAllData() throws SQLException {
+        String sql = "select * from jun";
+        preparedStatement = connection.prepareStatement(sql);
+        ResultSet resultSet = preparedStatement.executeQuery();
+        ArrayList<Book> arrayList = new ArrayList<>();
 
-    public static void updateData() {
-        try {
-            Connection connection = JDBCUtils.getConnection();
-            Scanner scanner = new Scanner(System.in);
-            String sql = "update infor set name=? where name=?";
-            preparedStatement = connection.prepareStatement(sql);
-
-            System.out.println("Please input the new name :");
-            preparedStatement.setString(1, scanner.nextLine());
-            System.out.println("Please input the old name :");
-            preparedStatement.setString(2, scanner.nextLine());
-
-            int isUpdate = preparedStatement.executeUpdate();
-            if (isUpdate > 0) {
-                System.out.println("Manage to update!");
-            }
-
-            scanner.close();
-            JDBCUtils.close(preparedStatement, connection);
-
-        } catch (Exception e) {
-            e.printStackTrace();
+        while(resultSet.next()) {
+            arrayList.add(new Book(resultSet.getInt(1), resultSet.getString(2), resultSet.getString(3),
+                    resultSet.getString(4),
+                    resultSet.getTimestamp(5),
+                    resultSet.getTimestamp(6)));
         }
-    }
 
+        if(arrayList.size() == 0) {
+            System.out.println("The table don't have any data!");
+        }
+
+        Iterator<Book> iterator = arrayList.iterator();
+        while (iterator.hasNext()) {
+            System.out.println(iterator.next());
+        }
+
+        JDBCUtils.close(preparedStatement, connection);
+    }
     public static void truncateTable() throws SQLException {
-        Connection connection = JDBCUtils.getConnection();
-        String sql = "truncate table infor";
+        String sql = "truncate table jun";
         preparedStatement = connection.prepareStatement(sql);
         boolean isTruncate = preparedStatement.execute();
 
@@ -216,8 +151,37 @@ public class JDBCUtils {
         } else {
             System.out.println("The function is invalid!");
         }
+
         JDBCUtils.close(preparedStatement, connection);
     }
 
 
+
+
+    public static void close(ResultSet resultSet, PreparedStatement preparedStatement, Connection connection) throws SQLException {
+        if(resultSet != null) {
+            resultSet.close();
+        }
+
+        if(preparedStatement != null) {
+            preparedStatement.close();
+        }
+
+        if(connection != null) {
+            connection.close();
+        }
+    }
+
+    public static void close(PreparedStatement preparedStatement, Connection connection) throws SQLException {
+        if(preparedStatement != null) {
+            preparedStatement.close();
+        }
+
+        if(connection != null) {
+            connection.close();
+        }
+
+
+
+    }
 }
